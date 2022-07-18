@@ -1,13 +1,15 @@
 const userRouter = require('express').Router();
 const requireAuth = require('../middlewares/requireAuth');
 const {
-  registerUser,
-  loginUser,
+  register,
+  login,
   getMe,
+  logout,
 } = require('../controllers/userController');
 
-userRouter.post('/register', registerUser);
-userRouter.post('/login', loginUser);
+userRouter.post('/register', register);
+userRouter.post('/login', login);
 userRouter.get('/getMe', requireAuth, getMe);
+userRouter.get('/logout', requireAuth, logout);
 
 module.exports = userRouter;

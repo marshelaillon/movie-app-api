@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const routes = require('./routes');
 const db = require('./config/db');
 const app = express();
+require('./models');
 dotenv.config();
 
 // Middlewares

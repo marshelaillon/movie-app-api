@@ -5,7 +5,7 @@ const validatePassword = require('../utils/validatePassword');
 const isMatch = require('../utils/isMatch');
 const generateToken = require('../utils/generateToken');
 
-const registerUser = async (req, res) => {
+const register = async (req, res) => {
   const { username, email, password } = req.body;
   if (validatePassword(password)) {
     try {
@@ -26,7 +26,7 @@ const registerUser = async (req, res) => {
   }
 };
 
-const loginUser = async (req, res) => {
+const login = async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ where: { email } });
@@ -50,8 +50,22 @@ const getMe = async (req, res) => {
     if (user) return res.status(200).json(user);
     res.status(401).json({ message: 'Not authorized' });
   } catch (error) {
-    return res.status(400).json({ error: error.errors[0].message });
+    res.status(400).json({ error: error.message });
   }
 };
 
-module.exports = { registerUser, loginUser, getMe };
+const logout = async (req, res) => {
+  const { id } = req.user;
+  try {
+    const user = await User.findOne({ where: { id } });
+    if (user) {
+      req.user = null;
+      return res.status(200).json({});
+    }
+    res.sendStatus(401);
+  } catch (error) {
+    res.status(401).json({ error: 'Something went wrong!' });
+  }
+};
+
+module.exports = { register, login, getMe, logout };
