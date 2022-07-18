@@ -6,7 +6,6 @@ class Favorite extends Model {}
 Favorite.init(
   {
     type: DataTypes.STRING, // movie or tv
-    title: DataTypes.STRING,
     tmdbId: DataTypes.INTEGER,
   },
   {
