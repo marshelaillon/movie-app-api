@@ -2,6 +2,8 @@ require('express').Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const validatePassword = require('../utils/validatePassword');
+const isMatch = require('../utils/isMatch');
+const generateToken = require('../utils/generateToken');
 
 const registerUser = async (req, res) => {
   const { username, email, password } = req.body;
@@ -24,4 +26,32 @@ const registerUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser };
+const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ where: { email } });
+    if (!user) return res.status(400).json({ message: 'Invalid email' });
+    if (user && isMatch(password, user.password)) {
+      const { email, username } = user;
+      return res
+        .status(200)
+        .json({ email, username, token: generateToken(user.id) });
+    }
+    res.status(400).json({ message: 'Invalid password' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const getMe = async (req, res) => {
+  const { id } = req.user;
+  try {
+    const user = await User.findOne({ where: { id } });
+    if (user) return res.status(200).json(user);
+    res.status(401).json({ message: 'Not authorized' });
+  } catch (error) {
+    return res.status(400).json({ error: error.errors[0].message });
+  }
+};
+
+module.exports = { registerUser, loginUser, getMe };
