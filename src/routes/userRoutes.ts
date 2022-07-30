@@ -14,9 +14,9 @@ const {
 userRouter.post('/register', register);
 userRouter.post('/login', login);
 userRouter.get('/getMe', requireAuth, getMe);
-// userRouter.get('/logout', requireAuth, logout);
-// userRouter.post('/favorites', requireAuth, addFavorite);
-// userRouter.get('/favorites', requireAuth, getFavorites);
-// userRouter.delete('/favorites/:type/:tmdbId', requireAuth, deleteFavorite);
+userRouter.get('/logout', requireAuth, logout);
+userRouter.post('/favorites', requireAuth, addFavorite);
+userRouter.get('/favorites', requireAuth, getFavorites);
+userRouter.delete('/favorites/:type/:tmdbId', requireAuth, deleteFavorite);
 
 module.exports = userRouter;

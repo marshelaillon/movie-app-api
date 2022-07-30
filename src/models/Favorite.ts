@@ -14,4 +14,4 @@ Favorite.init(
   }
 );
 
-module.exports = Favorite;
+export default Favorite;

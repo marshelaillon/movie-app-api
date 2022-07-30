@@ -1,20 +1,15 @@
 import { Request, Response } from 'express';
+import { Type } from '../enums/enums';
 import {
   isString,
   isValidPassword,
   isPasswordCorrect,
 } from '../utils/validators';
 import { hash } from 'bcryptjs';
-const { User } = require('../models/');
+const { User, Favorite } = require('../models/');
 const generateToken = require('../utils/generateToken');
-//const searchMovie = require('../utils/searchMovie');
-//const searchTV = require('../utils/searchTV');
-
-declare namespace Express {
-  export interface Request {
-    user: object;
-  }
-}
+const searchMovie = require('../utils/searchMovie');
+const searchTV = require('../utils/searchTV');
 
 interface UserInfo {
   id: number;
@@ -78,32 +73,35 @@ const getMe = async (req: Request, res: Response) => {
   const user: UserInfo = req.user as UserInfo;
   const id = user.id;
   try {
-    const user = await User.findOne({ where: { id } });
-    if (!user) return res.status(401).json({ message: 'Not authorized' });
-    return res.status(200).json(user);
+    const user = await User.findByPk(id);
+    if (user) return res.status(200).json(user);
+    return res.status(401).json({ message: 'Not authorized' });
   } catch (error) {
-    return res.status(401);
+    return res.status(400);
   }
 };
 
-/* 
 const logout = async (req: Request, res: Response) => {
-  const { id } = req.user;
+  const user: UserInfo = req.user as UserInfo;
+  const id = user.id;
   try {
     const user = await User.findOne({ where: { id } });
     if (user) {
       req.user = null;
       return res.status(200).json({});
     }
-    res.sendStatus(401);
+    return res.status(401).json({ message: 'Not authorized' });
   } catch (error) {
-    res.status(401).json({ error: 'Something went wrong!' });
+    return res.status(401);
   }
 };
 
 const addFavorite = async (req: Request, res: Response) => {
-  const { id } = req.user;
-  const { tmdbId, type } = req.body;
+  const user: UserInfo = req.user as UserInfo;
+  const id = user.id;
+  const tmdbId: number = req.body.tmdbId;
+  const type: Type = req.body.type;
+
   try {
     const user = await User.findOne({ where: { id } });
     if (!user) return res.status(401).json({ message: 'Not authorized' });
@@ -113,14 +111,16 @@ const addFavorite = async (req: Request, res: Response) => {
       where: { tmdbId, type, userId: id },
     });
     if (created) return res.status(201).json('Favorite added');
-    res.status(400).json({ message: 'Favorite already exists' });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+    return res.status(400).json({ message: 'Favorite already exists' });
+  } catch (e) {
+    return res.status(400).json({ error: (e as Error).message });
   }
 };
 
 const getFavorites = async (req: Request, res: Response) => {
-  const { id } = req.user;
+  const user: UserInfo = req.user as UserInfo;
+  const id = user.id;
+
   try {
     const user = await User.findOne({ where: { id } });
     if (!user) return res.status(401).json({ message: 'Not authorized' });
@@ -129,31 +129,34 @@ const getFavorites = async (req: Request, res: Response) => {
     });
     if (favorites.length) {
       const result = await Promise.allSettled(
-        favorites.map(async (favorite) => {
-          const { tmdbId, type } = favorite.dataValues;
-          try {
-            if (type === 'movie') {
-              const movie = await searchMovie(tmdbId);
-              return movie;
-            } else if (type === 'tv') {
-              const tv = await searchTV(tmdbId);
-              return tv;
+        favorites.map(
+          async (favorite: { dataValues: { tmdbId: number; type: Type } }) => {
+            const { tmdbId, type } = favorite.dataValues;
+            try {
+              if (type === 'movie') {
+                const movie = await searchMovie(tmdbId);
+                return movie;
+              } else if (type === 'tv') {
+                const tv = await searchTV(tmdbId);
+                return tv;
+              }
+            } catch (e) {
+              res.status(400).json({ error: (e as Error).message });
             }
-          } catch (error) {
-            res.status(400).json({ error: error.message });
           }
-        })
+        )
       );
       return res.status(200).send(result);
     }
-    res.status(400).json({ message: 'No favorites' });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+    return res.status(400).json({ message: 'No favorites' });
+  } catch (e) {
+    return res.status(400).json({ e: (e as Error).message });
   }
 };
 
 const deleteFavorite = async (req: Request, res: Response) => {
-  const { id } = req.user;
+  const user: UserInfo = req.user as UserInfo;
+  const id = user.id;
   const { tmdbId, type } = req.params;
   try {
     const user = await User.findOne({ where: { id } });
@@ -164,19 +167,18 @@ const deleteFavorite = async (req: Request, res: Response) => {
     if (!favorite)
       return res.status(400).json({ message: 'Favorite not found' });
     await favorite.destroy();
-    res.status(200).json({ message: 'Favorite deleted' });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+    return res.status(200).json({ message: 'Favorite deleted' });
+  } catch (e) {
+    return res.status(400).json({ error: (e as Error).message });
   }
-}; */
+};
 
 module.exports = {
   register,
   login,
   getMe,
-  /*  
   logout,
   addFavorite,
   getFavorites,
-  deleteFavorite, */
+  deleteFavorite,
 };
