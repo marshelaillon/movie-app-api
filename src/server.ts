@@ -28,3 +28,7 @@ app.use('/api', routes);
     console.log('Unable to connect to the database', (e as Error).message);
   }
 })();
+/* {
+  "tmdbId": 1396,
+  "type": "tv"
+} */

@@ -122,11 +122,9 @@ const getFavorites = async (req: Request, res: Response) => {
   const id = user.id;
 
   try {
-    const user = await User.findOne({ where: { id } });
+    const user = await User.findByPk(id);
     if (!user) return res.status(401).json({ message: 'Not authorized' });
-    const favorites = await Favorite.findAll({
-      where: { userId: id },
-    });
+    const favorites = await user.getFavorites();
     if (favorites.length) {
       const result = await Promise.allSettled(
         favorites.map(
@@ -135,10 +133,10 @@ const getFavorites = async (req: Request, res: Response) => {
             try {
               if (type === 'movie') {
                 const movie = await searchMovie(tmdbId);
-                return movie;
+                if (movie) return movie;
               } else if (type === 'tv') {
                 const tv = await searchTV(tmdbId);
-                return tv;
+                if (tv) return tv;
               }
             } catch (e) {
               res.status(400).json({ error: (e as Error).message });
@@ -146,7 +144,10 @@ const getFavorites = async (req: Request, res: Response) => {
           }
         )
       );
-      return res.status(200).send(result);
+      const response = result.map((item) => {
+        if (item.status === 'fulfilled') return item.value;
+      });
+      return res.status(200).send(response);
     }
     return res.status(400).json({ message: 'No favorites' });
   } catch (e) {
