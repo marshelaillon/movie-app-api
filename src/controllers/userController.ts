@@ -1,62 +1,93 @@
-require('express').Router();
-const { User, Favorite } = require('../models/');
-const bcrypt = require('bcryptjs');
-const validatePassword = require('../utils/validatePassword');
-const isMatch = require('../utils/isMatch');
+import { Request, Response } from 'express';
+import {
+  isString,
+  isValidPassword,
+  isPasswordCorrect,
+} from '../utils/validators';
+import { hash } from 'bcryptjs';
+const { User } = require('../models/');
 const generateToken = require('../utils/generateToken');
-const searchMovie = require('../utils/searchMovie');
-const searchTV = require('../utils/searchTV');
+//const searchMovie = require('../utils/searchMovie');
+//const searchTV = require('../utils/searchTV');
 
-const register = async (req, res) => {
+declare namespace Express {
+  export interface Request {
+    user: object;
+  }
+}
+
+interface UserInfo {
+  id: number;
+  username: string;
+  email: string;
+  password: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const register = async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
-  if (validatePassword(password)) {
+  if (!username || !email || !password)
+    return { message: 'All fields are required' };
+  if (
+    isString(username) &&
+    isString(email) &&
+    isString(password) &&
+    isValidPassword(password)
+  ) {
     try {
       const user = await User.create({
         username,
         email,
-        password: await bcrypt.hash(password, 8),
+        password: await hash(password, 8),
       });
-      res.status(201).json({ user, message: 'Register successfull' });
-    } catch (error) {
-      res.status(400).json({ error: error.message });
+      return res.status(201).json(user);
+    } catch (e) {
+      return res.status(400).json({ error: (e as Error).message });
     }
-  } else {
-    res.status(400).json({
-      message:
-        'Password must have minimum 8 characters, at least 1 uppercase letter, 1 lowercase letter, 1 number and 1 special character',
-    });
   }
+  return res.status(400).json({
+    message:
+      'Password must have minimum 8 characters, at least 1 uppercase letter, 1 lowercase letter, 1 number and 1 special character',
+  });
 };
 
-const login = async (req, res) => {
+const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ message: 'Invalid email' });
-    if (user && isMatch(password, user.password)) {
-      const { email, username } = user;
-      return res
-        .status(200)
-        .json({ email, username, token: generateToken(user.id) });
+  if (!email || !password)
+    return res.status(400).json({ message: 'All fields are required' });
+  if (isString(email) && isString(password)) {
+    try {
+      const user = await User.findOne({ where: { email } });
+      if (user && isPasswordCorrect(password, user.password)) {
+        const { email, username } = user;
+        req.user = user;
+        return res
+          .status(200)
+          .json({ email, username, token: generateToken(user.id) });
+      }
+      return res.status(400).json({ message: 'Invalid credentials' });
+    } catch (error) {
+      return res.status(400).json({ error: (error as Error).message });
     }
-    res.status(400).json({ message: 'Invalid password' });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
   }
+  return res.status(400);
 };
 
-const getMe = async (req, res) => {
-  const { id } = req.user;
+const getMe = async (req: Request, res: Response) => {
+  const user: UserInfo = req.user as UserInfo;
+  const id = user.id;
   try {
     const user = await User.findOne({ where: { id } });
-    if (user) return res.status(200).json(user);
-    res.status(401).json({ message: 'Not authorized' });
+    if (!user) return res.status(401).json({ message: 'Not authorized' });
+    return res.status(200).json(user);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    return res.status(401);
   }
 };
 
-const logout = async (req, res) => {
+/* 
+const logout = async (req: Request, res: Response) => {
   const { id } = req.user;
   try {
     const user = await User.findOne({ where: { id } });
@@ -70,7 +101,7 @@ const logout = async (req, res) => {
   }
 };
 
-const addFavorite = async (req, res) => {
+const addFavorite = async (req: Request, res: Response) => {
   const { id } = req.user;
   const { tmdbId, type } = req.body;
   try {
@@ -88,7 +119,7 @@ const addFavorite = async (req, res) => {
   }
 };
 
-const getFavorites = async (req, res) => {
+const getFavorites = async (req: Request, res: Response) => {
   const { id } = req.user;
   try {
     const user = await User.findOne({ where: { id } });
@@ -98,7 +129,7 @@ const getFavorites = async (req, res) => {
     });
     if (favorites.length) {
       const result = await Promise.allSettled(
-        favorites.map(async favorite => {
+        favorites.map(async (favorite) => {
           const { tmdbId, type } = favorite.dataValues;
           try {
             if (type === 'movie') {
@@ -121,7 +152,7 @@ const getFavorites = async (req, res) => {
   }
 };
 
-const deleteFavorite = async (req, res) => {
+const deleteFavorite = async (req: Request, res: Response) => {
   const { id } = req.user;
   const { tmdbId, type } = req.params;
   try {
@@ -137,14 +168,15 @@ const deleteFavorite = async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
-};
+}; */
 
 module.exports = {
   register,
   login,
   getMe,
+  /*  
   logout,
   addFavorite,
   getFavorites,
-  deleteFavorite,
+  deleteFavorite, */
 };

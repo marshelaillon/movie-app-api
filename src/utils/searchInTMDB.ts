@@ -1,6 +1,6 @@
-const axios = require('axios');
+import axios from 'axios';
 
-const searchInTMDB = async (type, title) => {
+const searchInTMDB = async (type: string, title: string) => {
   try {
     const search = await axios.get(
       `https://api.themoviedb.org/3/search/${type}?api_key=${process.env.API_KEY}&language=en-US&query=${title}&page=1`

@@ -1,13 +1,13 @@
-const express = require('express');
+import * as dotenv from 'dotenv';
+dotenv.config();
+import express from 'express';
 const cors = require('cors');
 const morgan = require('morgan');
 const corsOptions = require('./config/corsOptions');
-const dotenv = require('dotenv');
 const routes = require('./routes');
 const db = require('./config/db');
 const app = express();
 require('./models');
-dotenv.config();
 
 // Middlewares
 app.use(express.json());
@@ -24,7 +24,7 @@ app.use('/api', routes);
     app.listen(process.env.PORT, () => {
       console.log(`server is running on port ${process.env.PORT}`);
     });
-  } catch (error) {
-    console.log('Unable to connect to the database', error.message);
+  } catch (e) {
+    console.log('Unable to connect to the database', (e as Error).message);
   }
 })();
