@@ -11,10 +11,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const validators_1 = require("../utils/validators");
 const bcryptjs_1 = require("bcryptjs");
-const { User } = require('../models/');
+const { User, Favorite } = require('../models/');
 const generateToken = require('../utils/generateToken');
-//const searchMovie = require('../utils/searchMovie');
-//const searchTV = require('../utils/searchTV');
+const searchMovie = require('../utils/searchMovie');
+const searchTV = require('../utils/searchTV');
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, email, password } = req.body;
     if (!username || !email || !password)
@@ -62,107 +62,121 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     return res.status(400);
 });
 const getMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    /* const id: number | undefined = req.user?.id;
+    const user = req.user;
+    const id = user.id;
     try {
-      const user = await User.findOne({ where: { id } });
-      if (user) return res.status(200).json(user);
-      res.status(401).json({ message: 'Not authorized' });
-    } catch (error) {
-      return res.status(400).json({ error: error.message });
-    } */
-    return res.send(req.user);
+        const user = yield User.findByPk(id);
+        if (user)
+            return res.status(200).json(user);
+        return res.status(401).json({ message: 'Not authorized' });
+    }
+    catch (error) {
+        return res.status(400);
+    }
 });
-/*
-const logout = async (req: Request, res: Response) => {
-  const { id } = req.user;
-  try {
-    const user = await User.findOne({ where: { id } });
-    if (user) {
-      req.user = null;
-      return res.status(200).json({});
+const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    const id = user.id;
+    try {
+        const user = yield User.findOne({ where: { id } });
+        if (user) {
+            req.user = null;
+            return res.status(200).json({});
+        }
+        return res.status(401).json({ message: 'Not authorized' });
     }
-    res.sendStatus(401);
-  } catch (error) {
-    res.status(401).json({ error: 'Something went wrong!' });
-  }
-};
-
-const addFavorite = async (req: Request, res: Response) => {
-  const { id } = req.user;
-  const { tmdbId, type } = req.body;
-  try {
-    const user = await User.findOne({ where: { id } });
-    if (!user) return res.status(401).json({ message: 'Not authorized' });
-    if (!tmdbId || !type)
-      return res.status(400).json({ message: 'All fields are required' });
-    const [_, created] = await Favorite.findOrCreate({
-      where: { tmdbId, type, userId: id },
-    });
-    if (created) return res.status(201).json('Favorite added');
-    res.status(400).json({ message: 'Favorite already exists' });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-const getFavorites = async (req: Request, res: Response) => {
-  const { id } = req.user;
-  try {
-    const user = await User.findOne({ where: { id } });
-    if (!user) return res.status(401).json({ message: 'Not authorized' });
-    const favorites = await Favorite.findAll({
-      where: { userId: id },
-    });
-    if (favorites.length) {
-      const result = await Promise.allSettled(
-        favorites.map(async (favorite) => {
-          const { tmdbId, type } = favorite.dataValues;
-          try {
-            if (type === 'movie') {
-              const movie = await searchMovie(tmdbId);
-              return movie;
-            } else if (type === 'tv') {
-              const tv = await searchTV(tmdbId);
-              return tv;
-            }
-          } catch (error) {
-            res.status(400).json({ error: error.message });
-          }
-        })
-      );
-      return res.status(200).send(result);
+    catch (error) {
+        return res.status(401);
     }
-    res.status(400).json({ message: 'No favorites' });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-const deleteFavorite = async (req: Request, res: Response) => {
-  const { id } = req.user;
-  const { tmdbId, type } = req.params;
-  try {
-    const user = await User.findOne({ where: { id } });
-    if (!user) return res.status(401).json({ message: 'Not authorized' });
-    const favorite = await Favorite.findOne({
-      where: { tmdbId, type, userId: id },
-    });
-    if (!favorite)
-      return res.status(400).json({ message: 'Favorite not found' });
-    await favorite.destroy();
-    res.status(200).json({ message: 'Favorite deleted' });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-}; */
+});
+const addFavorite = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    const id = user.id;
+    const tmdbId = req.body.tmdbId;
+    const type = req.body.type;
+    try {
+        const user = yield User.findOne({ where: { id } });
+        if (!user)
+            return res.status(401).json({ message: 'Not authorized' });
+        if (!tmdbId || !type)
+            return res.status(400).json({ message: 'All fields are required' });
+        const [_, created] = yield Favorite.findOrCreate({
+            where: { tmdbId, type, userId: id },
+        });
+        if (created)
+            return res.status(201).json('Favorite added');
+        return res.status(400).json({ message: 'Favorite already exists' });
+    }
+    catch (e) {
+        return res.status(400).json({ error: e.message });
+    }
+});
+const getFavorites = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    const id = user.id;
+    try {
+        const user = yield User.findByPk(id);
+        if (!user)
+            return res.status(401).json({ message: 'Not authorized' });
+        const favorites = yield user.getFavorites();
+        if (favorites.length) {
+            const result = yield Promise.allSettled(favorites.map((favorite) => __awaiter(void 0, void 0, void 0, function* () {
+                const { tmdbId, type } = favorite.dataValues;
+                try {
+                    if (type === 'movie') {
+                        const movie = yield searchMovie(tmdbId);
+                        if (movie)
+                            return movie;
+                    }
+                    else if (type === 'tv') {
+                        const tv = yield searchTV(tmdbId);
+                        if (tv)
+                            return tv;
+                    }
+                }
+                catch (e) {
+                    res.status(400).json({ error: e.message });
+                }
+            })));
+            const response = result.map((item) => {
+                if (item.status === 'fulfilled')
+                    return item.value;
+            });
+            return res.status(200).send(response);
+        }
+        return res.status(400).json({ message: 'No favorites' });
+    }
+    catch (e) {
+        return res.status(400).json({ e: e.message });
+    }
+});
+const deleteFavorite = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    const id = user.id;
+    const { tmdbId, type } = req.params;
+    try {
+        const user = yield User.findOne({ where: { id } });
+        if (!user)
+            return res.status(401).json({ message: 'Not authorized' });
+        const favorite = yield Favorite.findOne({
+            where: { tmdbId, type, userId: id },
+        });
+        if (!favorite)
+            return res.status(400).json({ message: 'Favorite not found' });
+        yield favorite.destroy();
+        return res.status(200).json({ message: 'Favorite deleted' });
+    }
+    catch (e) {
+        return res.status(400).json({ error: e.message });
+    }
+});
 module.exports = {
     register,
     login,
     getMe,
-    /*
     logout,
     addFavorite,
     getFavorites,
-    deleteFavorite, */
+    deleteFavorite,
 };
 //# sourceMappingURL=userController.js.map

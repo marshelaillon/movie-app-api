@@ -3,18 +3,17 @@ import { JwtPayload, verify } from 'jsonwebtoken';
 import User from '../models/User';
 
 const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
-  // check if json web token exists & is verified
   try {
     let token: string | undefined;
     if (req.headers.authorization) {
       token = req.headers.authorization.split(' ')[1];
     }
     if (token) {
-      const tokenVerified = (await verify(
+      const jwtPayload = verify(
         token,
         process.env.JWT_SECRET as string
-      )) as JwtPayload;
-      const { id } = tokenVerified;
+      ) as JwtPayload;
+      const { id } = jwtPayload;
       const user = await User.findByPk(id);
       if (user) {
         req.user = user;

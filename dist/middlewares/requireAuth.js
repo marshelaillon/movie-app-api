@@ -8,36 +8,33 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requireAuth = void 0;
 const jsonwebtoken_1 = require("jsonwebtoken");
-const User = require('../models/User');
+const User_1 = __importDefault(require("../models/User"));
 const requireAuth = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    let token;
-    if (req.headers.authorization) {
-        token = req.headers.authorization.split(' ')[1];
-    }
     // check if json web token exists & is verified
-    if (token) {
-        const tokenVerified = (0, jsonwebtoken_1.verify)(token, process.env.JWT_SECRET);
-        try {
+    try {
+        let token;
+        if (req.headers.authorization) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+        if (token) {
+            const tokenVerified = (yield (0, jsonwebtoken_1.verify)(token, process.env.JWT_SECRET));
             const { id } = tokenVerified;
-            const user = yield User.findByPk(id);
+            const user = yield User_1.default.findByPk(id);
             if (user) {
                 req.user = user;
-                next();
+                return next();
             }
-            return res.status(401).json({ error: 'Invalid credentials' });
         }
-        catch (error) {
-            return res.sendStatus(401);
-        }
+        return res.status(401).json({ message: 'No token provided' });
     }
-    else {
-        return res
-            .status(401)
-            .json({ message: 'You must be logged in to access this resource' });
+    catch (error) {
+        return res.status(401).json({ error: 'Invalid token' });
     }
 });
-exports.requireAuth = requireAuth;
+module.exports = requireAuth;
 //# sourceMappingURL=requireAuth.js.map
