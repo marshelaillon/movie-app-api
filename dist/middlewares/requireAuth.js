@@ -15,15 +15,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = require("jsonwebtoken");
 const User_1 = __importDefault(require("../models/User"));
 const requireAuth = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    // check if json web token exists & is verified
     try {
         let token;
         if (req.headers.authorization) {
             token = req.headers.authorization.split(' ')[1];
         }
         if (token) {
-            const tokenVerified = (yield (0, jsonwebtoken_1.verify)(token, process.env.JWT_SECRET));
-            const { id } = tokenVerified;
+            const jwtPayload = (0, jsonwebtoken_1.verify)(token, process.env.JWT_SECRET);
+            const { id } = jwtPayload;
             const user = yield User_1.default.findByPk(id);
             if (user) {
                 req.user = user;
